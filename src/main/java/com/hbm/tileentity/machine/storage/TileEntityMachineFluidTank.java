@@ -2,6 +2,7 @@ package com.hbm.tileentity.machine.storage;
 
 import api.hbm.energymk2.IEnergyReceiverMK2.ConnectionPriority;
 import api.hbm.fluidmk2.FluidNode;
+import api.hbm.fluidmk2.IFillableItem;
 import api.hbm.fluidmk2.IFluidStandardTransceiverMK2;
 import api.hbm.redstoneoverradio.IRORInteractive;
 import api.hbm.redstoneoverradio.IRORValueProvider;
@@ -17,6 +18,7 @@ import com.hbm.inventory.RecipesCommon.AStack;
 import com.hbm.inventory.RecipesCommon.OreDictStack;
 import com.hbm.inventory.container.ContainerMachineFluidTank;
 import com.hbm.inventory.fluid.FluidType;
+import com.hbm.inventory.FluidContainerRegistry;
 import com.hbm.inventory.fluid.trait.*;
 import com.hbm.inventory.fluid.trait.FluidTrait.FluidReleaseType;
 import com.hbm.inventory.fluid.trait.FluidTraitSimple.*;
@@ -43,6 +45,8 @@ import li.cil.oc.api.network.SimpleComponent;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
@@ -71,6 +75,8 @@ public class TileEntityMachineFluidTank extends TileEntityMachineBase implements
 
 	public int age = 0;
 
+	private static final int[] slots_io = new int[] { 2, 3, 4, 5 };
+
 	public TileEntityMachineFluidTank() {
 		super(6);
 		tank = new FluidTank(Fluids.NONE, 256000);
@@ -79,6 +85,31 @@ public class TileEntityMachineFluidTank extends TileEntityMachineBase implements
 	@Override
 	public String getName() {
 		return "container.fluidtank";
+	}
+
+	@Override
+	public int[] getAccessibleSlotsFromSide(int side) {
+		return slots_io;
+	}
+
+	@Override
+	public boolean isItemValidForSlot(int i, ItemStack stack) {
+		return true;
+	}
+
+	@Override
+	public boolean canInsertItem(int i, ItemStack itemStack, int j) {
+		if (i == 2) {
+			int amount = FluidContainerRegistry.getFluidContent(itemStack, tank.getTankType());
+			return amount != 0;
+		}
+
+		return i == 4;
+	}
+
+	@Override
+	public boolean canExtractItem(int i, ItemStack stack, int j) {
+		return i == 3 || i == 5;
 	}
 
 	public byte getComparatorPower() {
@@ -91,7 +122,6 @@ public class TileEntityMachineFluidTank extends TileEntityMachineBase implements
 	public void updateEntity() {
 
 		if(!worldObj.isRemote) {
-
 			//meta below 12 means that it's an old multiblock configuration
 			if(this.getBlockMetadata() < 12) {
 				//get old direction
@@ -567,10 +597,10 @@ public class TileEntityMachineFluidTank extends TileEntityMachineBase implements
 
 	@Override
 	public String runRORFunction(String name, String[] params) {
-		
+
 		if((PREFIX_FUNCTION + "setmode").equals(name) && params.length > 0) {
 			int mode = IRORInteractive.parseInt(params[0], 0, 3);
-			
+
 			if(mode != this.mode) {
 				this.mode = (short) mode;
 				this.markChanged();
